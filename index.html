@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<meta name="referrer" content="no-referrer">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'">
+<title>Open Messages</title>
+<style>
+  :root { --bg: #ffffff; --fg: #111111; --muted: #666666; --card: #f2f2f7; --accent: #0a84ff; }
+  @media (prefers-color-scheme: dark) { :root { --bg: #000000; --fg: #f5f5f7; --muted: #98989d; --card: #1c1c1e; } }
+  * { box-sizing: border-box; }
+  body { margin: 0; padding: 24px 16px; background: var(--bg); color: var(--fg);
+         font: 17px/1.4 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+  main { max-width: 480px; margin: 0 auto; }
+  .text { background: var(--card); border-radius: 18px; padding: 14px 16px; white-space: pre-wrap; word-wrap: break-word; }
+  .to { color: var(--muted); font-size: 14px; margin: 0 0 8px 4px; }
+  a.btn, button { display: block; width: 100%; margin-top: 14px; padding: 14px; border: 0; border-radius: 14px;
+                  background: var(--accent); color: #fff; font: inherit; font-weight: 600; text-align: center; text-decoration: none; }
+  button { background: var(--card); color: var(--fg); }
+  .err { color: var(--muted); }
+</style>
+</head>
+<body>
+<main id="app"><p class="err">Nothing to open.</p></main>
+<script>
+// Link format: #<phone>|<text>, both URL-encoded. The part after # never reaches the server.
+(function () {
+  var raw = location.hash.slice(1);
+  history.replaceState(null, "", location.pathname);  // drop the number and text from history
+  var i = raw.indexOf("|");
+  if (i < 1) return;
+  var phone = decodeURIComponent(raw.slice(0, i)).replace(/[^\d+]/g, "");
+  var text = decodeURIComponent(raw.slice(i + 1));
+  var ios = /iPhone|iPad|iPod|Macintosh/.test(navigator.userAgent);
+  var url = "sms:" + phone + (ios ? "&" : "?") + "body=" + encodeURIComponent(text);
+
+  var app = document.getElementById("app");
+  app.innerHTML = "";
+  var to = document.createElement("p"); to.className = "to"; to.textContent = "To " + phone;
+  var bubble = document.createElement("div"); bubble.className = "text"; bubble.textContent = text;
+  var open = document.createElement("a"); open.className = "btn"; open.href = url; open.textContent = "Open in Messages";
+  var copy = document.createElement("button"); copy.type = "button"; copy.textContent = "Copy text";
+  copy.onclick = function () {
+    (navigator.clipboard ? navigator.clipboard.writeText(text) : Promise.reject()).then(
+      function () { copy.textContent = "Copied"; }, function () { copy.textContent = "Copy failed"; });
+  };
+  app.append(to, bubble, open, copy);
+  location.href = url;  // try straight away; the button is there if the browser wants a tap first
+})();
+</script>
+</body>
+</html>
